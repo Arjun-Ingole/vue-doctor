@@ -234,12 +234,10 @@ const printScoreGauge = (score: number, label: string): void => {
   logger.break();
 };
 
-const getDoctorFace = (score: number): string[] => {
-  if (score >= SCORE_GOOD_THRESHOLD)
-    return ["◆─────◆", "│ ◡ ◡ │", "│  ▽  │", "╰──●──╯"];
-  if (score >= SCORE_OK_THRESHOLD)
-    return ["◆─────◆", "│ · · │", "│  ─  │", "╰──●──╯"];
-  return ["◆─────◆", "│ × × │", "│  ~  │", "╰──●──╯"];
+const getDoctorFace = (score: number): [string, string] => {
+  if (score >= SCORE_GOOD_THRESHOLD) return ["◠ ◠", " ▽ "];
+  if (score >= SCORE_OK_THRESHOLD) return ["• •", " ─ "];
+  return ["x x", " ▽ "];
 };
 
 const printSummary = (
@@ -276,15 +274,16 @@ const printSummary = (
   summaryLineParts.push(highlighter.dim(fileCountText));
   summaryLineParts.push(highlighter.dim(elapsedTimeText));
 
-  const faceLines = getDoctorFace(scoreResult.score);
+  const [eyes, mouth] = getDoctorFace(scoreResult.score);
   const scoreColorizer = (text: string): string => colorizeByScore(text, scoreResult.score);
 
   const summaryFramedLines: FramedLine[] = [];
-  for (const line of faceLines) {
-    summaryFramedLines.push(createFramedLine(line, scoreColorizer(line)));
-  }
+  summaryFramedLines.push(createFramedLine("┌─────┐", scoreColorizer("┌─────┐")));
+  summaryFramedLines.push(createFramedLine(`│ ${eyes} │`, scoreColorizer(`│ ${eyes} │`)));
+  summaryFramedLines.push(createFramedLine(`│ ${mouth} │`, scoreColorizer(`│ ${mouth} │`)));
+  summaryFramedLines.push(createFramedLine("└─────┘", scoreColorizer("└─────┘")));
   summaryFramedLines.push(
-    createFramedLine("◆ Vue Doctor", `${scoreColorizer("◆")} Vue Doctor`),
+    createFramedLine("Vue Doctor", "Vue Doctor"),
   );
   summaryFramedLines.push(createFramedLine(""));
 
@@ -401,12 +400,13 @@ export const scan = async (directory: string, inputOptions: ScanOptions = {}): P
   if (diagnostics.length === 0) {
     logger.success("No issues found!");
     logger.break();
-    const faceLines = getDoctorFace(scoreResult.score);
+    const [eyes, mouth] = getDoctorFace(scoreResult.score);
     const colorize = (text: string) => colorizeByScore(text, scoreResult.score);
-    for (const line of faceLines) {
-      logger.log(colorize(`  ${line}`));
-    }
-    logger.log(`  ${colorize("◆")} Vue Doctor`);
+    logger.log(colorize("  ┌─────┐"));
+    logger.log(colorize(`  │ ${eyes} │`));
+    logger.log(colorize(`  │ ${mouth} │`));
+    logger.log(colorize("  └─────┘"));
+    logger.log("  Vue Doctor");
     logger.break();
     printScoreGauge(scoreResult.score, scoreResult.label);
     return;
