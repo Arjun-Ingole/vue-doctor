@@ -122,3 +122,13 @@ export interface PromptMultiselectContext {
   bell: () => void;
   render: () => void;
 }
+
+export interface ClipboardCommand {
+  command: string;
+  args: string[];
+}
+
+export interface CleanedDiagnostic {
+  message: string;
+  help: string;
+}

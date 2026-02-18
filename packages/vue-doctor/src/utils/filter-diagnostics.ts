@@ -1,14 +1,5 @@
 import type { Diagnostic, VueDoctorConfig } from "../types.js";
-
-const matchesGlobPattern = (filePath: string, pattern: string): boolean => {
-  const escapedPattern = pattern
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replace(/\*\*/g, "DOUBLE_STAR")
-    .replace(/\*/g, "[^/]*")
-    .replace(/DOUBLE_STAR/g, ".*");
-
-  return new RegExp(`^${escapedPattern}$`).test(filePath);
-};
+import { matchGlobPattern } from "./match-glob-pattern.js";
 
 const isRuleIgnored = (
   diagnostic: Diagnostic,
@@ -24,7 +15,7 @@ const isFileIgnored = (
   diagnostic: Diagnostic,
   ignoredFiles: string[],
 ): boolean =>
-  ignoredFiles.some((pattern) => matchesGlobPattern(diagnostic.filePath, pattern));
+  ignoredFiles.some((pattern) => matchGlobPattern(diagnostic.filePath, pattern));
 
 export const filterIgnoredDiagnostics = (
   diagnostics: Diagnostic[],

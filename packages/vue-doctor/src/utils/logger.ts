@@ -1,15 +1,20 @@
 import pc from "picocolors";
 import type { LoggerCaptureState } from "../types.js";
+import { stripAnsi } from "./strip-ansi.js";
 
 const captureState: LoggerCaptureState = {
   isEnabled: false,
   lines: [],
 };
 
-const captureIfEnabled = (text: string): void => {
-  if (captureState.isEnabled) {
-    captureState.lines.push(text);
-  }
+const captureLogLine = (text: string): void => {
+  if (!captureState.isEnabled) return;
+  captureState.lines.push(stripAnsi(text));
+};
+
+const writeLogLine = (text: string): void => {
+  console.log(text);
+  captureLogLine(text);
 };
 
 export const startLoggerCapture = (): void => {
@@ -18,39 +23,32 @@ export const startLoggerCapture = (): void => {
 };
 
 export const stopLoggerCapture = (): string => {
+  const capturedOutput = captureState.lines.join("\n");
   captureState.isEnabled = false;
-  const output = captureState.lines.join("\n");
   captureState.lines = [];
-  return output;
+  return capturedOutput;
 };
 
 export const logger = {
-  log: (message: string): void => {
-    console.log(message);
-    captureIfEnabled(message);
+  error(...args: unknown[]) {
+    writeLogLine(pc.red(args.join(" ")));
   },
-  error: (message: string): void => {
-    console.error(pc.red(message));
-    captureIfEnabled(message);
+  warn(...args: unknown[]) {
+    writeLogLine(pc.yellow(args.join(" ")));
   },
-  warn: (message: string): void => {
-    console.warn(pc.yellow(message));
-    captureIfEnabled(message);
+  info(...args: unknown[]) {
+    writeLogLine(pc.cyan(args.join(" ")));
   },
-  success: (message: string): void => {
-    console.log(pc.green(message));
-    captureIfEnabled(message);
+  success(...args: unknown[]) {
+    writeLogLine(pc.green(args.join(" ")));
   },
-  info: (message: string): void => {
-    console.log(pc.cyan(message));
-    captureIfEnabled(message);
+  dim(...args: unknown[]) {
+    writeLogLine(pc.dim(args.join(" ")));
   },
-  dim: (message: string): void => {
-    console.log(pc.dim(message));
-    captureIfEnabled(message);
+  log(...args: unknown[]) {
+    writeLogLine(args.join(" "));
   },
-  break: (): void => {
-    console.log("");
-    captureIfEnabled("");
+  break() {
+    writeLogLine("");
   },
 };

@@ -3,21 +3,25 @@ import { Command } from "commander";
 import { SEPARATOR_LENGTH_CHARS } from "./constants.js";
 import { scan } from "./scan.js";
 import type { DiffInfo, ScanOptions } from "./types.js";
+import { copyPromptToClipboard, maybePromptAiFix, openAiToFix } from "./utils/ai-integration.js";
 import { filterSourceFiles, getDiffInfo } from "./utils/get-diff-files.js";
 import { handleError } from "./utils/handle-error.js";
 import { highlighter } from "./utils/highlighter.js";
 import { loadConfig } from "./utils/load-config.js";
-import { logger } from "./utils/logger.js";
+import { logger, startLoggerCapture, stopLoggerCapture } from "./utils/logger.js";
 import { prompts } from "./utils/prompts.js";
 import { selectProjects } from "./utils/select-projects.js";
+import { maybePromptSkillInstall } from "./utils/skill-prompt.js";
 
-const VERSION = process.env.VERSION ?? "0.0.1";
+const VERSION = process.env.VERSION ?? "0.0.4";
 
 interface CliFlags {
   lint: boolean;
   deadCode: boolean;
   verbose: boolean;
   score: boolean;
+  fix: boolean;
+  prompt: boolean;
   yes: boolean;
   project?: string;
   diff?: boolean | string;
@@ -69,8 +73,15 @@ const program = new Command()
   .option("-y, --yes", "skip prompts, scan all workspace projects")
   .option("--project <name>", "select workspace project (comma-separated for multiple)")
   .option("--diff [base]", "scan only files changed vs base branch")
+  .option("--fix", "open AI assistant to auto-fix all issues")
+  .option("--prompt", "copy latest scan output to clipboard")
   .action(async (directory: string, flags: CliFlags) => {
-    const isScoreOnly = flags.score;
+    const isScoreOnly = flags.score && !flags.prompt;
+    const shouldCopyPromptOutput = flags.prompt;
+
+    if (shouldCopyPromptOutput) {
+      startLoggerCapture();
+    }
 
     try {
       const resolvedDirectory = path.resolve(directory);
@@ -89,9 +100,9 @@ const program = new Command()
         deadCode: isCliOverride("deadCode")
           ? flags.deadCode
           : (userConfig?.deadCode ?? flags.deadCode),
-        verbose: isCliOverride("verbose")
-          ? Boolean(flags.verbose)
-          : (userConfig?.verbose ?? false),
+        verbose:
+          flags.prompt ||
+          (isCliOverride("verbose") ? Boolean(flags.verbose) : (userConfig?.verbose ?? false)),
         scoreOnly: isScoreOnly,
       };
 
@@ -154,23 +165,48 @@ const program = new Command()
           logger.break();
         }
       }
+
+      if (flags.fix) {
+        openAiToFix(resolvedDirectory);
+      }
+
+      if (!isScoreOnly && !flags.prompt) {
+        await maybePromptSkillInstall(shouldSkipPrompts);
+        if (!shouldSkipPrompts && !flags.fix) {
+          await maybePromptAiFix(resolvedDirectory);
+        }
+      }
     } catch (error) {
-      handleError(error, { shouldExit: true });
+      handleError(error, { shouldExit: !shouldCopyPromptOutput });
+    } finally {
+      if (shouldCopyPromptOutput) {
+        const capturedOutput = stopLoggerCapture();
+        copyPromptToClipboard(capturedOutput, !isScoreOnly);
+      }
     }
   })
   .addHelpText(
     "after",
     `
-${highlighter.dim("Examples:")}
-  ${highlighter.info("npx vue-doctor .")}            scan current directory
-  ${highlighter.info("npx vue-doctor . --verbose")}  show affected files per rule
-  ${highlighter.info("npx vue-doctor . --diff")}     scan only changed files
-  ${highlighter.info("npx vue-doctor . --score")}    output only the health score
-
-${highlighter.dim("Configuration (vue-doctor.config.json or package.json vueDoctor key):")}
-  ${highlighter.dim('{ "ignore": { "rules": ["vue-doctor/no-v-html"], "files": ["src/generated/**"] } }')}
+${highlighter.dim("Learn more:")}
+  ${highlighter.info("https://github.com/Arjun-Ingole/vue-doctor")}
 `,
   );
+
+const fixAction = (directory: string) => {
+  try {
+    openAiToFix(directory);
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+const fixCommand = new Command("fix")
+  .description("Open AI assistant to auto-fix vue-doctor issues")
+  .argument("[directory]", "project directory", ".")
+  .action(fixAction);
+
+program.addCommand(fixCommand);
 
 const main = async () => {
   await program.parseAsync();

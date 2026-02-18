@@ -19,3 +19,5 @@ export const ERROR_PREVIEW_LENGTH_CHARS = 500;
 
 export const CONFIG_FILENAMES = ["vue-doctor.config.json"] as const;
 export const PACKAGE_JSON_CONFIG_KEY = "vueDoctor";
+
+export const DEFAULT_BRANCH_CANDIDATES = ["main", "master"];
