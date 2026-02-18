@@ -2,10 +2,6 @@ export const VUE_FILE_PATTERN = /\.(vue|ts|tsx|js|jsx|mts|mjs)$/;
 export const SOURCE_FILE_PATTERN = /\.(vue|ts|tsx|js|jsx|mts|mjs)$/;
 export const VUE_SFC_PATTERN = /\.vue$/;
 
-export const SCORE_API_URL = "https://vue.doctor/api/score";
-export const SHARE_BASE_URL = "https://vue.doctor/share";
-export const OFFLINE_MESSAGE = "Score unavailable (offline or API unreachable)";
-
 export const SCORE_GOOD_THRESHOLD = 75;
 export const SCORE_OK_THRESHOLD = 50;
 export const PERFECT_SCORE = 100;

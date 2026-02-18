@@ -5,13 +5,10 @@ import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 import {
   MILLISECONDS_PER_SECOND,
-  OFFLINE_MESSAGE,
   PERFECT_SCORE,
   SCORE_BAR_WIDTH_CHARS,
   SCORE_GOOD_THRESHOLD,
   SCORE_OK_THRESHOLD,
-  SEPARATOR_LENGTH_CHARS,
-  SHARE_BASE_URL,
   SUMMARY_BOX_HORIZONTAL_PADDING_CHARS,
   SUMMARY_BOX_OUTER_INDENT_CHARS,
   VUE_FILE_PATTERN,
@@ -70,35 +67,52 @@ const buildFileLineMap = (diagnostics: Diagnostic[]): Map<string, number[]> => {
 };
 
 const printDiagnostics = (diagnostics: Diagnostic[], isVerbose: boolean): void => {
-  const ruleGroups = groupBy(
-    diagnostics,
-    (diagnostic) => `${diagnostic.plugin}/${diagnostic.rule}`,
-  );
+  const categoryGroups = groupBy(diagnostics, (d) => d.category);
 
-  const sortedRuleGroups = sortBySeverity([...ruleGroups.entries()]);
+  const sortedCategories = [...categoryGroups.entries()].toSorted(([, a], [, b]) => {
+    const aWorst = a.some((d) => d.severity === "error") ? 0 : 1;
+    const bWorst = b.some((d) => d.severity === "error") ? 0 : 1;
+    return aWorst - bWorst;
+  });
 
-  for (const [, ruleDiagnostics] of sortedRuleGroups) {
-    const firstDiagnostic = ruleDiagnostics[0];
-    const severitySymbol = firstDiagnostic.severity === "error" ? "✗" : "⚠";
-    const icon = colorizeBySeverity(severitySymbol, firstDiagnostic.severity);
-    const count = ruleDiagnostics.length;
-    const countLabel = count > 1 ? colorizeBySeverity(` (${count})`, firstDiagnostic.severity) : "";
+  for (const [category, categoryDiagnostics] of sortedCategories) {
+    const errorCount = categoryDiagnostics.filter((d) => d.severity === "error").length;
+    const warnCount = categoryDiagnostics.filter((d) => d.severity === "warning").length;
+    const countParts: string[] = [];
+    if (errorCount > 0) countParts.push(highlighter.error(`${errorCount} error${errorCount !== 1 ? "s" : ""}`));
+    if (warnCount > 0) countParts.push(highlighter.warn(`${warnCount} warning${warnCount !== 1 ? "s" : ""}`));
 
-    logger.log(`  ${icon} ${firstDiagnostic.message}${countLabel}`);
-    if (firstDiagnostic.help) {
-      logger.dim(indentMultilineText(firstDiagnostic.help, "    "));
-    }
-
-    if (isVerbose) {
-      const fileLines = buildFileLineMap(ruleDiagnostics);
-
-      for (const [filePath, lines] of fileLines) {
-        const lineLabel = lines.length > 0 ? `: ${lines.join(", ")}` : "";
-        logger.dim(`    ${filePath}${lineLabel}`);
-      }
-    }
-
+    logger.log(
+      `  ${highlighter.dim("──")} ${highlighter.bold(category)}  ${countParts.join("  ")}`,
+    );
     logger.break();
+
+    const ruleGroups = groupBy(categoryDiagnostics, (d) => `${d.plugin}/${d.rule}`);
+    const sortedRuleGroups = sortBySeverity([...ruleGroups.entries()]);
+
+    for (const [, ruleDiagnostics] of sortedRuleGroups) {
+      const firstDiagnostic = ruleDiagnostics[0];
+      const severitySymbol = firstDiagnostic.severity === "error" ? "✗" : "⚠";
+      const icon = colorizeBySeverity(severitySymbol, firstDiagnostic.severity);
+      const count = ruleDiagnostics.length;
+      const countLabel = count > 1 ? colorizeBySeverity(` (${count})`, firstDiagnostic.severity) : "";
+      const ruleId = highlighter.dim(`  vue-doctor/${firstDiagnostic.rule}`);
+
+      logger.log(`  ${icon} ${firstDiagnostic.message}${countLabel}${ruleId}`);
+      if (firstDiagnostic.help) {
+        logger.dim(indentMultilineText(firstDiagnostic.help, "    "));
+      }
+
+      if (isVerbose) {
+        const fileLines = buildFileLineMap(ruleDiagnostics);
+        for (const [filePath, lines] of fileLines) {
+          const lineLabel = lines.length > 0 ? `:${lines.join(", ")}` : "";
+          logger.dim(`    ${filePath}${lineLabel}`);
+        }
+      }
+
+      logger.break();
+    }
   }
 };
 
@@ -221,35 +235,17 @@ const printScoreGauge = (score: number, label: string): void => {
 };
 
 const getDoctorFace = (score: number): string[] => {
-  if (score >= SCORE_GOOD_THRESHOLD) return ["◠ ◠", " ▽ "];
-  if (score >= SCORE_OK_THRESHOLD) return ["• •", " ─ "];
-  return ["x x", " ▽ "];
-};
-
-const buildShareUrl = (
-  diagnostics: Diagnostic[],
-  scoreResult: ScoreResult | null,
-  projectName: string,
-): string => {
-  const errorCount = diagnostics.filter((d) => d.severity === "error").length;
-  const warningCount = diagnostics.filter((d) => d.severity === "warning").length;
-  const affectedFileCount = collectAffectedFiles(diagnostics).size;
-
-  const params = new URLSearchParams();
-  params.set("p", projectName);
-  if (scoreResult) params.set("s", String(scoreResult.score));
-  if (errorCount > 0) params.set("e", String(errorCount));
-  if (warningCount > 0) params.set("w", String(warningCount));
-  if (affectedFileCount > 0) params.set("f", String(affectedFileCount));
-
-  return `${SHARE_BASE_URL}?${params.toString()}`;
+  if (score >= SCORE_GOOD_THRESHOLD)
+    return ["◆─────◆", "│ ◡ ◡ │", "│  ▽  │", "╰──●──╯"];
+  if (score >= SCORE_OK_THRESHOLD)
+    return ["◆─────◆", "│ · · │", "│  ─  │", "╰──●──╯"];
+  return ["◆─────◆", "│ × × │", "│  ~  │", "╰──●──╯"];
 };
 
 const printSummary = (
   diagnostics: Diagnostic[],
   elapsedMilliseconds: number,
-  scoreResult: ScoreResult | null,
-  projectName: string,
+  scoreResult: ScoreResult,
   totalSourceFileCount: number,
 ): void => {
   const errorCount = diagnostics.filter((d) => d.severity === "error").length;
@@ -280,42 +276,26 @@ const printSummary = (
   summaryLineParts.push(highlighter.dim(fileCountText));
   summaryLineParts.push(highlighter.dim(elapsedTimeText));
 
+  const faceLines = getDoctorFace(scoreResult.score);
+  const scoreColorizer = (text: string): string => colorizeByScore(text, scoreResult.score);
+
   const summaryFramedLines: FramedLine[] = [];
-  if (scoreResult) {
-    const [eyes, mouth] = getDoctorFace(scoreResult.score);
-    const scoreColorizer = (text: string): string => colorizeByScore(text, scoreResult.score);
-
-    summaryFramedLines.push(createFramedLine("┌─────┐", scoreColorizer("┌─────┐")));
-    summaryFramedLines.push(createFramedLine(`│ ${eyes} │`, scoreColorizer(`│ ${eyes} │`)));
-    summaryFramedLines.push(createFramedLine(`│ ${mouth} │`, scoreColorizer(`│ ${mouth} │`)));
-    summaryFramedLines.push(createFramedLine("└─────┘", scoreColorizer("└─────┘")));
-    summaryFramedLines.push(
-      createFramedLine(
-        "Vue Doctor (vue.doctor)",
-        `Vue Doctor ${highlighter.dim("(vue.doctor)")}`,
-      ),
-    );
-    summaryFramedLines.push(createFramedLine(""));
-
-    const scoreLinePlainText = `${scoreResult.score} / ${PERFECT_SCORE}  ${scoreResult.label}`;
-    const scoreLineRenderedText = `${colorizeByScore(String(scoreResult.score), scoreResult.score)} / ${PERFECT_SCORE}  ${colorizeByScore(scoreResult.label, scoreResult.score)}`;
-    summaryFramedLines.push(createFramedLine(scoreLinePlainText, scoreLineRenderedText));
-    summaryFramedLines.push(createFramedLine(""));
-    summaryFramedLines.push(
-      createFramedLine(buildPlainScoreBar(scoreResult.score), buildScoreBar(scoreResult.score)),
-    );
-    summaryFramedLines.push(createFramedLine(""));
-  } else {
-    summaryFramedLines.push(
-      createFramedLine(
-        "Vue Doctor (vue.doctor)",
-        `Vue Doctor ${highlighter.dim("(vue.doctor)")}`,
-      ),
-    );
-    summaryFramedLines.push(createFramedLine(""));
-    summaryFramedLines.push(createFramedLine(OFFLINE_MESSAGE, highlighter.dim(OFFLINE_MESSAGE)));
-    summaryFramedLines.push(createFramedLine(""));
+  for (const line of faceLines) {
+    summaryFramedLines.push(createFramedLine(line, scoreColorizer(line)));
   }
+  summaryFramedLines.push(
+    createFramedLine("◆ Vue Doctor", `${scoreColorizer("◆")} Vue Doctor`),
+  );
+  summaryFramedLines.push(createFramedLine(""));
+
+  const scoreLinePlainText = `${scoreResult.score} / ${PERFECT_SCORE}  ${scoreResult.label}`;
+  const scoreLineRenderedText = `${colorizeByScore(String(scoreResult.score), scoreResult.score)} / ${PERFECT_SCORE}  ${colorizeByScore(scoreResult.label, scoreResult.score)}`;
+  summaryFramedLines.push(createFramedLine(scoreLinePlainText, scoreLineRenderedText));
+  summaryFramedLines.push(createFramedLine(""));
+  summaryFramedLines.push(
+    createFramedLine(buildPlainScoreBar(scoreResult.score), buildScoreBar(scoreResult.score)),
+  );
+  summaryFramedLines.push(createFramedLine(""));
 
   summaryFramedLines.push(
     createFramedLine(summaryLinePartsPlain.join("  "), summaryLineParts.join("  ")),
@@ -325,14 +305,10 @@ const printSummary = (
   try {
     const diagnosticsDirectory = writeDiagnosticsDirectory(diagnostics);
     logger.break();
-    logger.dim(`  Full diagnostics written to ${diagnosticsDirectory}`);
+    logger.dim(`  Detailed report → ${diagnosticsDirectory}`);
   } catch {
     logger.break();
   }
-
-  const shareUrl = buildShareUrl(diagnostics, scoreResult, projectName);
-  logger.break();
-  logger.dim(`  Share your results: ${highlighter.info(shareUrl)}`);
 };
 
 export const scan = async (directory: string, inputOptions: ScanOptions = {}): Promise<void> => {
@@ -358,31 +334,22 @@ export const scan = async (directory: string, inputOptions: ScanOptions = {}): P
   if (!options.scoreOnly) {
     const frameworkLabel = formatFrameworkName(projectInfo.framework);
     const languageLabel = projectInfo.hasTypeScript ? "TypeScript" : "JavaScript";
+    const sep = highlighter.dim(" · ");
 
-    const completeStep = (message: string) => {
-      spinner(message).start().succeed(message);
-    };
+    const projectParts = [
+      highlighter.info(`Vue ${projectInfo.vueVersion}`),
+      highlighter.info(frameworkLabel),
+      highlighter.info(languageLabel),
+    ];
+    if (projectInfo.hasPinia) projectParts.push(highlighter.info("Pinia"));
 
-    completeStep(`Detecting framework. Found ${highlighter.info(frameworkLabel)}.`);
-    completeStep(
-      `Detecting Vue version. Found ${highlighter.info(`Vue ${projectInfo.vueVersion}`)}.`,
-    );
-    completeStep(`Detecting language. Found ${highlighter.info(languageLabel)}.`);
+    const fileCountStr = isDiffMode
+      ? `${includePaths.length} changed file${includePaths.length !== 1 ? "s" : ""}`
+      : `${projectInfo.sourceFileCount} file${projectInfo.sourceFileCount !== 1 ? "s" : ""}`;
+    projectParts.push(highlighter.dim(fileCountStr));
+    if (userConfig) projectParts.push(highlighter.dim("config loaded"));
 
-    if (projectInfo.hasPinia) {
-      completeStep(`Detected ${highlighter.info("Pinia")} for state management.`);
-    }
-
-    if (isDiffMode) {
-      completeStep(`Scanning ${highlighter.info(`${includePaths.length}`)} changed source files.`);
-    } else {
-      completeStep(`Found ${highlighter.info(`${projectInfo.sourceFileCount}`)} source files.`);
-    }
-
-    if (userConfig) {
-      completeStep(`Loaded ${highlighter.info("vue-doctor config")}.`);
-    }
-
+    logger.log(`${highlighter.success("✔")} ${projectParts.join(sep)}`);
     logger.break();
   }
 
@@ -390,83 +357,58 @@ export const scan = async (directory: string, inputOptions: ScanOptions = {}): P
     ? includePaths.filter((filePath) => VUE_FILE_PATTERN.test(filePath))
     : undefined;
 
-  const lintPromise = options.lint
-    ? (async () => {
-        const lintSpinner = options.scoreOnly ? null : spinner("Running lint checks...").start();
-        try {
-          const lintDiagnostics = await runEslint(
-            directory,
-            projectInfo.framework,
-            projectInfo.hasTypeScript,
-            vueIncludePaths,
-          );
-          lintSpinner?.succeed("Running lint checks.");
-          return lintDiagnostics;
-        } catch (error) {
-          lintSpinner?.fail("Lint checks failed (non-fatal, skipping).");
-          if (error instanceof Error) {
-            logger.error(error.message);
-            if (error.stack) logger.dim(error.stack);
-          } else {
-            logger.error(String(error));
-          }
-          return [];
-        }
-      })()
-    : Promise.resolve<Diagnostic[]>([]);
+  const analysisSpinner = options.scoreOnly ? null : spinner("Analyzing...").start();
 
-  const deadCodePromise =
+  let lintError: unknown = null;
+  let deadCodeError: unknown = null;
+
+  const [lintDiagnostics, deadCodeDiagnostics] = await Promise.all([
+    options.lint
+      ? runEslint(directory, projectInfo.framework, projectInfo.hasTypeScript, vueIncludePaths)
+          .catch((err) => { lintError = err; return [] as Diagnostic[]; })
+      : Promise.resolve<Diagnostic[]>([]),
     options.deadCode && !isDiffMode
-      ? (async () => {
-          const deadCodeSpinner = options.scoreOnly
-            ? null
-            : spinner("Detecting dead code...").start();
-          try {
-            const knipDiagnostics = await runKnip(directory);
-            deadCodeSpinner?.succeed("Detecting dead code.");
-            return knipDiagnostics;
-          } catch (error) {
-            deadCodeSpinner?.fail("Dead code detection failed (non-fatal, skipping).");
-            logger.error(String(error));
-            return [];
-          }
-        })()
-      : Promise.resolve<Diagnostic[]>([]);
+      ? runKnip(directory)
+          .catch((err) => { deadCodeError = err; return [] as Diagnostic[]; })
+      : Promise.resolve<Diagnostic[]>([]),
+  ]);
 
-  const [lintDiagnostics, deadCodeDiagnostics] = await Promise.all([lintPromise, deadCodePromise]);
+  if (lintError || deadCodeError) {
+    analysisSpinner?.warn("Analysis complete (some checks failed).");
+    if (lintError) {
+      logger.error(lintError instanceof Error ? lintError.message : String(lintError));
+      if (lintError instanceof Error && lintError.stack) logger.dim(lintError.stack);
+    }
+    if (deadCodeError) {
+      logger.error(String(deadCodeError));
+    }
+  } else {
+    analysisSpinner?.succeed("Analysis complete.");
+  }
   const allDiagnostics = [...lintDiagnostics, ...deadCodeDiagnostics];
   const diagnostics = userConfig
     ? filterIgnoredDiagnostics(allDiagnostics, userConfig)
     : allDiagnostics;
 
   const elapsedMilliseconds = performance.now() - startTime;
-  const scoreResult = await calculateScore(diagnostics);
+  const scoreResult = calculateScore(diagnostics);
 
   if (options.scoreOnly) {
-    if (scoreResult) {
-      logger.log(`${scoreResult.score}`);
-    } else {
-      logger.dim(OFFLINE_MESSAGE);
-    }
+    logger.log(`${scoreResult.score}`);
     return;
   }
 
   if (diagnostics.length === 0) {
     logger.success("No issues found!");
     logger.break();
-    if (scoreResult) {
-      const [eyes, mouth] = getDoctorFace(scoreResult.score);
-      const colorize = (text: string) => colorizeByScore(text, scoreResult.score);
-      logger.log(colorize("  ┌─────┐"));
-      logger.log(colorize(`  │ ${eyes} │`));
-      logger.log(colorize(`  │ ${mouth} │`));
-      logger.log(colorize("  └─────┘"));
-      logger.log(`  Vue Doctor ${highlighter.dim("(vue.doctor)")}`);
-      logger.break();
-      printScoreGauge(scoreResult.score, scoreResult.label);
-    } else {
-      logger.dim(`  ${OFFLINE_MESSAGE}`);
+    const faceLines = getDoctorFace(scoreResult.score);
+    const colorize = (text: string) => colorizeByScore(text, scoreResult.score);
+    for (const line of faceLines) {
+      logger.log(colorize(`  ${line}`));
     }
+    logger.log(`  ${colorize("◆")} Vue Doctor`);
+    logger.break();
+    printScoreGauge(scoreResult.score, scoreResult.label);
     return;
   }
 
@@ -478,7 +420,6 @@ export const scan = async (directory: string, inputOptions: ScanOptions = {}): P
     diagnostics,
     elapsedMilliseconds,
     scoreResult,
-    projectInfo.projectName,
     displayedSourceFileCount,
   );
 };

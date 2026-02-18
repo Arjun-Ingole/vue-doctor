@@ -255,6 +255,8 @@ export const runEslint = async (
   const allDiagnostics: Diagnostic[] = [];
 
   for (const filePath of files) {
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
     let content: string;
     try {
       content = fs.readFileSync(filePath, "utf-8");
