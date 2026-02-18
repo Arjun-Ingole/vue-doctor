@@ -6,7 +6,7 @@
 npx vue-doctor@latest .
 ```
 
-Vue Doctor scans your codebase and produces a 0–100 health score with actionable diagnostics across 6 categories and 30+ rules.
+Vue Doctor scans your codebase and produces a 0–100 health score with actionable diagnostics across 7 categories and 30+ rules.
 
 ---
 
@@ -73,6 +73,11 @@ Vue Doctor scans your codebase and produces a 0–100 health score with actionab
 | `prefer-async-component` | Heavy components that could be async-loaded |
 | `no-heavy-library` | Importing jQuery, Underscore, Ramda |
 
+### Accessibility
+| Rule | Description |
+|------|-------------|
+| `require-reduced-motion` | Motion libraries without `prefers-reduced-motion` support (WCAG 2.3.3) |
+
 ---
 
 ## CLI Usage
@@ -104,7 +109,97 @@ npx vue-doctor@latest . --no-dead-code
 
 # Select a specific workspace project
 npx vue-doctor@latest . --project my-app
+
+# Copy scan output to clipboard for AI assistants
+npx vue-doctor@latest . --prompt
+
+# Open AI assistant to auto-fix issues
+npx vue-doctor@latest . --fix
 ```
+
+---
+
+## AI Integration
+
+Vue Doctor integrates with AI coding assistants to help fix issues automatically.
+
+### Using --fix
+
+```bash
+npx vue-doctor@latest . --fix
+```
+
+Opens your AI assistant (Claude Code or Cursor) with a pre-built prompt to fix all detected issues.
+
+### Using --prompt
+
+```bash
+npx vue-doctor@latest . --prompt
+```
+
+Copies the scan output and a fix prompt to your clipboard. Paste it into any AI assistant.
+
+### fix command
+
+```bash
+npx vue-doctor@latest fix
+```
+
+Opens your AI assistant to fix issues without running a scan first.
+
+---
+
+## Install as a Skill
+
+Add Vue Doctor's rules as a [skill](https://skills.sh) for your AI coding agent:
+
+```bash
+npx skills add Arjun-Ingole/vue-doctor
+```
+
+This gives AI agents like Cursor, Claude Code, Copilot, and others access to all 30+ Vue best practice rules. The CLI will also prompt to install the skill after scanning.
+
+---
+
+## GitHub Actions
+
+Use Vue Doctor in your CI/CD pipeline:
+
+```yaml
+# .github/workflows/vue-doctor.yml
+name: Vue Doctor
+
+on: [push, pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run Vue Doctor
+        uses: Arjun-Ingole/vue-doctor@main
+        with:
+          directory: '.'
+          verbose: 'true'
+```
+
+### Action Inputs
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `directory` | `.` | Project directory to scan |
+| `verbose` | `true` | Show file details per rule |
+| `project` | - | Workspace project(s) to scan |
+| `node-version` | `20` | Node.js version |
+
+### Action Outputs
+
+| Output | Description |
+|--------|-------------|
+| `score` | Health score (0-100) |
 
 ---
 
