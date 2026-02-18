@@ -1,6 +1,6 @@
 {
   "name": "vue-doctor",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Diagnose and fix performance, security, and correctness issues in your Vue app",
   "keywords": [
     "diagnostics",
@@ -9,12 +9,16 @@
     "performance",
     "vue"
   ],
-  "homepage": "https://github.com/vue-doctor/vue-doctor#readme",
+  "homepage": "https://github.com/Arjun-Ingole/vue-doctor#readme",
   "bugs": {
-    "url": "https://github.com/vue-doctor/vue-doctor/issues"
+    "url": "https://github.com/Arjun-Ingole/vue-doctor/issues"
   },
   "license": "MIT",
   "author": "vue-doctor contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Arjun-Ingole/vue-doctor"
+  },
   "bin": {
     "vue-doctor": "./dist/cli.mjs"
   },
