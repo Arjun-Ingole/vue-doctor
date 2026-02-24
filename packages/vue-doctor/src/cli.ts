@@ -12,7 +12,7 @@ import { prompts } from "./utils/prompts.js";
 import { selectProjects } from "./utils/select-projects.js";
 import { maybePromptSkillInstall } from "./utils/skill-prompt.js";
 
-const VERSION = process.env.VERSION ?? "0.0.4";
+const VERSION = process.env.VERSION ?? "0.0.5";
 
 interface CliFlags {
   lint: boolean;

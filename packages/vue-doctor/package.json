@@ -1,6 +1,6 @@
 {
   "name": "vue-doctor",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Diagnose and fix performance, security, and correctness issues in your Vue app",
   "keywords": [
     "diagnostics",
