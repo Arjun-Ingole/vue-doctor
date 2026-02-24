@@ -6,7 +6,7 @@
 npx vue-doctor@latest .
 ```
 
-Vue Doctor scans your codebase and produces a 0–100 health score with actionable diagnostics across 7 categories and 42+ rules.
+Vue Doctor scans your codebase and produces a 0–100 health score with actionable diagnostics across 7 categories and 47+ rules.
 
 ---
 

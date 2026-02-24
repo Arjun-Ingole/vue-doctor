@@ -6,7 +6,7 @@
 npx vue-doctor@latest .
 ```
 
-Vue Doctor scans your codebase and produces a 0–100 health score with actionable diagnostics across 7 categories and 42+ rules.
+Vue Doctor scans your codebase and produces a 0–100 health score with actionable diagnostics across 7 categories and 47+ rules.
 
 ---
 
@@ -170,7 +170,7 @@ Add Vue Doctor's rules as a [skill](https://skills.sh) for your AI coding agent:
 npx skills add Arjun-Ingole/vue-doctor
 ```
 
-This gives AI agents like Cursor, Claude Code, Copilot, and others access to all 30+ Vue best practice rules. The CLI will also prompt to install the skill after scanning.
+This gives AI agents like Cursor, Claude Code, Copilot, and others access to all 47+ Vue best practice rules. The CLI will also prompt to install the skill after scanning.
 
 ---
 
