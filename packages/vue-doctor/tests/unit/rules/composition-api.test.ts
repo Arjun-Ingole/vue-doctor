@@ -149,4 +149,37 @@ describe('composition-api rules', () => {
       ],
     })
   })
+
+  describe('no-async-computed', () => {
+    const rule = compositionApiRules['no-async-computed']
+
+    ruleTester.run('no-async-computed', rule, {
+      valid: [
+        'const label = computed(() => count.value + 1)',
+      ],
+      invalid: [
+        {
+          code: 'const data = computed(async () => await fetch("/api"))',
+          errors: [{ messageId: 'noAsync' }],
+        },
+      ],
+    })
+  })
+
+  describe('no-conditional-composable-call', () => {
+    const rule = compositionApiRules['no-conditional-composable-call']
+
+    ruleTester.run('no-conditional-composable-call', rule, {
+      valid: [
+        'const route = useRoute()',
+        'if (ready) { doSomething() }',
+      ],
+      invalid: [
+        {
+          code: 'if (ready) { useRoute() }',
+          errors: [{ messageId: 'noConditionalComposable' }],
+        },
+      ],
+    })
+  })
 })

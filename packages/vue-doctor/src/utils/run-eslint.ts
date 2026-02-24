@@ -16,6 +16,8 @@ const RULE_CATEGORY_MAP: Record<string, string> = {
   "vue-doctor/no-watch-immediate-fetch": "Composition API",
   "vue-doctor/no-reactive-destructure": "Composition API",
   "vue-doctor/no-ref-in-computed": "Composition API",
+  "vue-doctor/no-async-computed": "Composition API",
+  "vue-doctor/no-conditional-composable-call": "Composition API",
 
   // Performance
   "vue-doctor/no-index-as-key": "Performance",
@@ -48,6 +50,9 @@ const RULE_CATEGORY_MAP: Record<string, string> = {
   "vue-doctor/no-window-in-ssr": "Nuxt",
   "vue-doctor/require-seo-meta": "Nuxt",
   "vue-doctor/no-process-env-in-client": "Nuxt",
+  "vue-doctor/require-define-page-meta": "Nuxt",
+  "vue-doctor/no-server-only-import-in-client": "Nuxt",
+  "vue-doctor/no-client-composable-in-server-route": "Nuxt",
 
   // Bundle Size
   "vue-doctor/no-barrel-import": "Bundle Size",
@@ -55,6 +60,16 @@ const RULE_CATEGORY_MAP: Record<string, string> = {
   "vue-doctor/no-moment-import": "Bundle Size",
   "vue-doctor/prefer-async-component": "Bundle Size",
   "vue-doctor/no-heavy-library": "Bundle Size",
+
+  // Accessibility
+  "vue-doctor/no-autofocus": "Accessibility",
+  "vue-doctor/no-positive-tabindex": "Accessibility",
+  "vue-doctor/require-button-type": "Accessibility",
+  "vue-doctor/require-img-alt": "Accessibility",
+  "vue-doctor/require-accessible-form-control-name": "Accessibility",
+  "vue-doctor/no-click-without-keyboard-handler": "Accessibility",
+  "vue-doctor/require-media-captions": "Accessibility",
+  "vue-doctor/no-aria-hidden-on-focusable": "Accessibility",
 };
 
 const RULE_HELP_MAP: Record<string, string> = {
@@ -72,6 +87,10 @@ const RULE_HELP_MAP: Record<string, string> = {
     "Use toRefs(): `const { count, name } = toRefs(state)` to preserve reactivity after destructuring",
   "no-ref-in-computed":
     "Declare the ref outside: `const inner = ref(null)` then reference it in computed() as a dependency",
+  "no-async-computed":
+    "Keep computed getters synchronous; move async logic to watch()/onMounted() and update a ref",
+  "no-conditional-composable-call":
+    "Call composables unconditionally at setup top level to keep execution order predictable",
   "no-index-as-key":
     "Use a stable unique identifier: `:key=\"item.id\"` — index keys break rendering on reorder/filter",
   "no-expensive-inline-expression":
@@ -115,6 +134,12 @@ const RULE_HELP_MAP: Record<string, string> = {
     "Add SEO meta: `useSeoMeta({ title: 'Page Title', description: 'Page description', ogTitle: 'Page Title' })`",
   "no-process-env-in-client":
     "Use `const config = useRuntimeConfig()` then `config.public.apiBase` for client-accessible config",
+  "require-define-page-meta":
+    "Add `definePageMeta({ ... })` in Nuxt page files to define layout and middleware behavior explicitly",
+  "no-server-only-import-in-client":
+    "Do not import server-only modules in client-rendered files; move logic to server routes or server plugins",
+  "no-client-composable-in-server-route":
+    "Do not call client-only composables in server route handlers",
   "no-barrel-import":
     "Import from the direct path: `import Button from './components/Button.vue'` instead of `./components`",
   "no-full-lodash-import":
@@ -124,6 +149,22 @@ const RULE_HELP_MAP: Record<string, string> = {
   "prefer-async-component":
     "Use async loading: `const HeavyComponent = defineAsyncComponent(() => import('./HeavyComponent.vue'))`",
   "no-heavy-library": "Find a lighter alternative or use only the specific parts you need",
+  "no-autofocus":
+    "Remove autofocus and set focus only in response to user intent or controlled lifecycle logic",
+  "no-positive-tabindex":
+    "Use natural tab order or tabindex=\"0\"; avoid tabindex values greater than 0",
+  "require-button-type":
+    "Set an explicit button type: `type=\"button\"`, `type=\"submit\"`, or `type=\"reset\"`",
+  "require-img-alt":
+    "Add alt text to images, or use an empty alt (`alt=\"\"`) for decorative images",
+  "require-accessible-form-control-name":
+    "Add `aria-label`, `aria-labelledby`, or an associated `<label>` for form controls",
+  "no-click-without-keyboard-handler":
+    "Add keyboard handlers (keydown/keyup/keypress) for clickable non-interactive elements",
+  "require-media-captions":
+    "Add a `<track kind=\"captions\">` or `<track kind=\"subtitles\">` for video content",
+  "no-aria-hidden-on-focusable":
+    "Remove `aria-hidden=\"true\"` from focusable elements so assistive tech can access them",
 };
 
 // ─── Severity mapping ────────────────────────────────────────────────────────
@@ -138,7 +179,20 @@ const RULE_SEVERITY_MAP: Record<string, "error" | "warning"> = {
   "no-mutation-in-computed": "error",
   "no-this-in-setup": "error",
   "no-reactive-destructure": "error",
+  "no-async-computed": "error",
+  "no-conditional-composable-call": "error",
   "no-window-in-ssr": "error",
+  "no-server-only-import-in-client": "error",
+  "no-client-composable-in-server-route": "error",
+  "no-autofocus": "error",
+  "no-positive-tabindex": "error",
+  "require-button-type": "error",
+  "require-img-alt": "error",
+  "require-accessible-form-control-name": "error",
+  "no-click-without-keyboard-handler": "error",
+  "require-media-captions": "error",
+  "no-aria-hidden-on-focusable": "error",
+  "require-define-page-meta": "warning",
   "use-usefetch-over-fetch": "warning",
   "require-server-route-error-handling": "warning",
 };
@@ -301,7 +355,6 @@ export const runEslint = async (
 
       const ruleId = msg.ruleId;
       const ruleName = ruleId.replace(/^vue-doctor\//, "");
-      const severity: "error" | "warning" = msg.severity === 2 ? "error" : "warning";
 
       // Use the configured severity from our map rather than ESLint's
       const resolvedSeverity = getRuleSeverity(ruleName);

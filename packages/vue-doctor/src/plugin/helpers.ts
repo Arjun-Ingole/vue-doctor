@@ -1,4 +1,3 @@
-import { WATCH_FUNCTIONS } from "./constants.js";
 import type { EsTreeNode, RuleContext } from "./types.js";
 
 // Walk the AST tree, calling visitor on each node

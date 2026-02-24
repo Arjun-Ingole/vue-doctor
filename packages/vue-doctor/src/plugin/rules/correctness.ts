@@ -1,6 +1,6 @@
 import type { Rule, RuleVisitors } from "../types.js";
 import { DOM_ACCESS_PROPERTIES } from "../constants.js";
-import { getTemplateBodyVisitor, walkAst } from "../helpers.js";
+import { getTemplateBodyVisitor } from "../helpers.js";
 
 /**
  * Detects direct DOM manipulation in setup() or lifecycle hooks.

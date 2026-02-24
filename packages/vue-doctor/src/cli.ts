@@ -1,6 +1,5 @@
 import path from "node:path";
 import { Command } from "commander";
-import { SEPARATOR_LENGTH_CHARS } from "./constants.js";
 import { scan } from "./scan.js";
 import type { DiffInfo, ScanOptions } from "./types.js";
 import { copyPromptToClipboard, maybePromptAiFix, openAiToFix } from "./utils/ai-integration.js";

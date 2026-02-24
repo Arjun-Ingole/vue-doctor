@@ -1,7 +1,6 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { ANIMATION_LIBRARIES } from "../plugin/constants.js";
 import type { Diagnostic } from "../types.js";
 import { readPackageJson } from "./read-package-json.js";
 

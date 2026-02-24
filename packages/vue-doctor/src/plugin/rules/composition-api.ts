@@ -6,7 +6,6 @@ import {
   getBodyStatements,
   getWatchCallback,
   isCallTo,
-  isSimpleExpression,
   walkAst,
 } from "../helpers.js";
 
@@ -322,6 +321,71 @@ export const noRefInComputed: Rule = {
   },
 };
 
+/**
+ * Detects async computed getters, which produce Promise values and unstable reactivity.
+ */
+export const noAsyncComputed: Rule = {
+  meta: {
+    type: "problem",
+    docs: { description: "Avoid async computed getters" },
+    messages: {
+      noAsync:
+        "computed() getters should be synchronous. Move async work to watch()/onMounted() and store result in a ref.",
+    },
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        if (!isCallTo(node, "computed")) return;
+        const args = node.arguments as Array<{ type?: string; async?: boolean }>;
+        const getterNode = args?.[0];
+        if (!getterNode) return;
+        if (
+          (getterNode.type === "ArrowFunctionExpression" || getterNode.type === "FunctionExpression") &&
+          getterNode.async
+        ) {
+          context.report({ node, messageId: "noAsync" });
+        }
+      },
+    };
+  },
+};
+
+/**
+ * Detects composables called conditionally, which can create inconsistent execution order.
+ */
+export const noConditionalComposableCall: Rule = {
+  meta: {
+    type: "problem",
+    docs: { description: "Avoid calling composables conditionally" },
+    messages: {
+      noConditionalComposable:
+        "Composable calls should not be conditional. Move composable invocation to the top level of setup.",
+    },
+  },
+  create(context) {
+    return {
+      IfStatement(node) {
+        const consequent = node.consequent as { type?: string };
+        const alternate = node.alternate as { type?: string } | null;
+        const inspectNode = (targetNode: { type?: string } | null): void => {
+          if (!targetNode) return;
+          walkAst(targetNode as { type: string }, (innerNode) => {
+            if (innerNode.type !== "CallExpression") return;
+            const callee = innerNode.callee as { type?: string; name?: string };
+            if (callee.type !== "Identifier" || !callee.name) return;
+            if (/^use[A-Z]/.test(callee.name)) {
+              context.report({ node: innerNode, messageId: "noConditionalComposable" });
+            }
+          });
+        };
+        inspectNode(consequent);
+        inspectNode(alternate);
+      },
+    };
+  },
+};
+
 export const compositionApiRules = {
   "no-watch-as-computed": noWatchAsComputed,
   "no-async-watcheffect": noAsyncWatchEffect,
@@ -330,4 +394,6 @@ export const compositionApiRules = {
   "no-watch-immediate-fetch": noWatchImmediateFetch,
   "no-reactive-destructure": noReactiveDestructure,
   "no-ref-in-computed": noRefInComputed,
+  "no-async-computed": noAsyncComputed,
+  "no-conditional-composable-call": noConditionalComposableCall,
 };

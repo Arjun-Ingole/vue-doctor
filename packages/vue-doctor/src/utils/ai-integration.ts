@@ -49,16 +49,6 @@ const isCursorInstalled = (): boolean => {
   }
 };
 
-const openUrl = (url: string): void => {
-  if (process.platform === "win32") {
-    const cmdEscapedUrl = url.replace(/%/g, "%%");
-    execSync(`start "" "${cmdEscapedUrl}"`, { stdio: "ignore" });
-    return;
-  }
-  const openCommand = process.platform === "darwin" ? `open "${url}"` : `xdg-open "${url}"`;
-  execSync(openCommand, { stdio: "ignore" });
-};
-
 const openClaudeWithPrompt = (directory: string): void => {
   const resolvedDirectory = path.resolve(directory);
   try {

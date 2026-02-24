@@ -6,7 +6,7 @@
 npx vue-doctor@latest .
 ```
 
-Vue Doctor scans your codebase and produces a 0–100 health score with actionable diagnostics across 6 categories and 30+ rules.
+Vue Doctor scans your codebase and produces a 0–100 health score with actionable diagnostics across 7 categories and 42+ rules.
 
 ---
 
@@ -22,6 +22,8 @@ Vue Doctor scans your codebase and produces a 0–100 health score with actionab
 | `no-watch-immediate-fetch` | `watch(..., fetch, { immediate: true })` → use `useFetch()` |
 | `no-reactive-destructure` | Destructuring `reactive()` loses reactivity |
 | `no-ref-in-computed` | Creating `ref()` inside `computed()` (memory leak) |
+| `no-async-computed` | `computed(async () => ...)` creates Promise-based reactive state |
+| `no-conditional-composable-call` | Calling `useXxx()` conditionally can break stable setup behavior |
 
 ### Performance
 | Rule | Description |
@@ -63,6 +65,9 @@ Vue Doctor scans your codebase and produces a 0–100 health score with actionab
 | `no-window-in-ssr` | `window`/`document` access during SSR |
 | `require-seo-meta` | Pages without `useSeoMeta()` or `useHead()` |
 | `no-process-env-in-client` | `process.env` in client code → use `useRuntimeConfig()` |
+| `require-define-page-meta` | Pages should define route/page metadata via `definePageMeta()` |
+| `no-server-only-import-in-client` | Prevent server-only imports in client-rendered files |
+| `no-client-composable-in-server-route` | Prevent client-only composables in Nuxt server routes |
 
 ### Bundle Size
 | Rule | Description |
@@ -72,6 +77,18 @@ Vue Doctor scans your codebase and produces a 0–100 health score with actionab
 | `no-moment-import` | moment.js adds ~230kb |
 | `prefer-async-component` | Heavy components that could be async-loaded |
 | `no-heavy-library` | Importing jQuery, Underscore, Ramda |
+
+### Accessibility
+| Rule | Description |
+|------|-------------|
+| `no-autofocus` | `autofocus` can disrupt keyboard and screen-reader users |
+| `no-positive-tabindex` | Positive tabindex breaks natural keyboard navigation |
+| `require-button-type` | `<button>` without `type` can trigger unintended form submits |
+| `require-img-alt` | `<img>` must include an `alt` attribute |
+| `require-accessible-form-control-name` | Form controls need an accessible name (`aria-label`/`aria-labelledby`/label) |
+| `no-click-without-keyboard-handler` | Clickable non-interactive elements must support keyboard interaction |
+| `require-media-captions` | `<video>` should include captions/subtitles tracks |
+| `no-aria-hidden-on-focusable` | Prevent `aria-hidden=\"true\"` on focusable controls |
 
 ---
 

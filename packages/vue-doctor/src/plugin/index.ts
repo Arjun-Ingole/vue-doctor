@@ -1,3 +1,4 @@
+import { accessibilityRules } from "./rules/accessibility.js";
 import { architectureRules } from "./rules/architecture.js";
 import { bundleSizeRules } from "./rules/bundle-size.js";
 import { compositionApiRules } from "./rules/composition-api.js";
@@ -29,10 +30,13 @@ export const vueDoctorPlugin: RulePlugin = {
 
     // Bundle size rules
     ...bundleSizeRules,
+
+    // Accessibility rules
+    ...accessibilityRules,
   },
 };
 
 export default vueDoctorPlugin;
 
 // Named exports for programmatic use
-export { architectureRules, bundleSizeRules, compositionApiRules, correctnessRules, nuxtRules, performanceRules, securityRules };
+export { accessibilityRules, architectureRules, bundleSizeRules, compositionApiRules, correctnessRules, nuxtRules, performanceRules, securityRules };

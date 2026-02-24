@@ -1,6 +1,7 @@
 import type { Rule, RuleVisitors } from "../types.js";
 import { EXPENSIVE_ARRAY_METHODS } from "../constants.js";
-import { countChainedArrayMethods, getTemplateBodyVisitor, walkAst } from "../helpers.js";
+import { GIANT_COMPONENT_LINE_THRESHOLD } from "../constants.js";
+import { countChainedArrayMethods, getTemplateBodyVisitor } from "../helpers.js";
 
 /**
  * Detects v-for with array index used as :key.
@@ -276,19 +277,22 @@ export const noTemplateMethodCall: Rule = {
 export const noGiantComponent: Rule = {
   meta: {
     type: "suggestion",
-    docs: { description: "Avoid giant Vue components (> 300 lines)" },
+    docs: { description: "Avoid giant Vue components" },
     messages: {
       splitComponent:
-        "This component is very large. Extract logical sections into focused child components.",
+        "This component exceeds {{threshold}} lines. Extract logical sections into focused child components.",
     },
   },
   create(context) {
     return {
       Program(node) {
         const lines = context.getSourceCode().lines;
-        const THRESHOLD = 300;
-        if (lines.length > THRESHOLD) {
-          context.report({ node, messageId: "splitComponent" });
+        if (lines.length > GIANT_COMPONENT_LINE_THRESHOLD) {
+          context.report({
+            node,
+            messageId: "splitComponent",
+            data: { threshold: String(GIANT_COMPONENT_LINE_THRESHOLD) },
+          });
         }
       },
     };

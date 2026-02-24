@@ -33,6 +33,8 @@ describe('nuxt rules', () => {
       valid: [
         'onMounted(() => { console.log(window.innerWidth) })',
         'function check() { if (typeof window === "undefined") return }',
+        'if (process.client) { console.log(window.innerWidth) }',
+        'if (import.meta.client) { console.log(document.title) }',
       ],
       invalid: [
         {
@@ -66,6 +68,78 @@ describe('nuxt rules', () => {
           code: 'const apiKey = process.env.API_KEY',
           filename: '/project/pages/index.vue',
           errors: [{ messageId: 'useRuntimeConfig' }],
+        },
+      ],
+    })
+  })
+
+  describe('require-define-page-meta', () => {
+    const rule = nuxtRules['require-define-page-meta']
+
+    ruleTester.run('require-define-page-meta', rule, {
+      valid: [
+        {
+          code: 'definePageMeta({ layout: "default" })',
+          filename: '/project/pages/index.vue',
+        },
+        {
+          code: 'const x = 1',
+          filename: '/project/components/app-card.vue',
+        },
+      ],
+      invalid: [
+        {
+          code: 'const pageTitle = "Home"',
+          filename: '/project/pages/index.vue',
+          errors: [{ messageId: 'addPageMeta' }],
+        },
+      ],
+    })
+  })
+
+  describe('no-server-only-import-in-client', () => {
+    const rule = nuxtRules['no-server-only-import-in-client']
+
+    ruleTester.run('no-server-only-import-in-client', rule, {
+      valid: [
+        {
+          code: 'import { defineEventHandler } from "h3"',
+          filename: '/project/server/api/users.ts',
+        },
+        {
+          code: 'import { ref } from "vue"',
+          filename: '/project/pages/index.vue',
+        },
+      ],
+      invalid: [
+        {
+          code: 'import { defineEventHandler } from "h3"',
+          filename: '/project/pages/index.vue',
+          errors: [{ messageId: 'noServerImport' }],
+        },
+      ],
+    })
+  })
+
+  describe('no-client-composable-in-server-route', () => {
+    const rule = nuxtRules['no-client-composable-in-server-route']
+
+    ruleTester.run('no-client-composable-in-server-route', rule, {
+      valid: [
+        {
+          code: 'const route = useRoute()',
+          filename: '/project/pages/index.vue',
+        },
+        {
+          code: 'const eventHandler = defineEventHandler(() => "ok")',
+          filename: '/project/server/api/ping.ts',
+        },
+      ],
+      invalid: [
+        {
+          code: 'const route = useRoute()',
+          filename: '/project/server/api/users.ts',
+          errors: [{ messageId: 'noClientComposable' }],
         },
       ],
     })

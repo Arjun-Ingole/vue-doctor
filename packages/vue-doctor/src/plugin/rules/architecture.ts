@@ -1,6 +1,6 @@
 import type { Rule, RuleVisitors } from "../types.js";
 import { GIANT_COMPONENT_LINE_THRESHOLD } from "../constants.js";
-import { getTemplateBodyVisitor, walkAst } from "../helpers.js";
+import { getTemplateBodyVisitor } from "../helpers.js";
 
 /**
  * Detects Vue SFC files over GIANT_COMPONENT_LINE_THRESHOLD lines.
@@ -46,7 +46,6 @@ export const noPropMutation: Rule = {
   create(context) {
     // Track defineProps result variable name
     let propsVariableName: string | null = null;
-    const propNames = new Set<string>();
 
     return {
       VariableDeclarator(node) {
@@ -61,14 +60,6 @@ export const noPropMutation: Rule = {
         const id = node.id as { type: string; name?: string };
         if (id.type === "Identifier" && id.name) {
           propsVariableName = id.name;
-        }
-
-        // Collect prop names from withDefaults(defineProps<{ ... }>(), ...) or defineProps({ ... })
-        const args = init.arguments;
-        if (args?.[0]?.type === "ObjectExpression") {
-          for (const prop of args[0].properties ?? []) {
-            if (prop.key?.name) propNames.add(prop.key.name);
-          }
         }
       },
 

@@ -82,7 +82,6 @@ export const noSecretsInClient: Rule = {
   create(context) {
     return {
       VariableDeclarator(node) {
-        const id = node.id as { type: string; name?: string };
         const init = node.init as { type: string; value?: unknown } | null;
 
         if (!init || init.type !== "Literal" || typeof init.value !== "string") return;

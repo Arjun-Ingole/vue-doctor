@@ -1,5 +1,4 @@
 import type { Rule } from "../types.js";
-import { HEAVY_PACKAGES } from "../constants.js";
 
 /**
  * Detects importing from barrel/index files which prevents tree-shaking.
@@ -29,7 +28,7 @@ export const noBarrelImport: Rule = {
           importPath.endsWith("/index.ts") ||
           importPath.endsWith("/index.js") ||
           importPath.endsWith("/index.vue") ||
-          (/\/$/.test(importPath)) || // trailing slash
+          importPath.endsWith("/") ||
           (importPath.includes("/") &&
             !importPath.split("/").pop()?.includes(".") &&
             !importPath.endsWith(".."));

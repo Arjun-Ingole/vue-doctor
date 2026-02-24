@@ -17,13 +17,6 @@ const NUXT_CONFIG_FILENAMES = [
   "nuxt.config.mjs",
 ];
 
-const VITE_CONFIG_FILENAMES = [
-  "vite.config.js",
-  "vite.config.ts",
-  "vite.config.mjs",
-  "vite.config.cjs",
-];
-
 const FRAMEWORK_PACKAGES: Record<string, Framework> = {
   nuxt: "nuxt",
   "@nuxt/core": "nuxt",
